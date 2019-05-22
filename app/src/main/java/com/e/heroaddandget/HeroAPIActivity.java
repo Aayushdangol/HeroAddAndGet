@@ -1,7 +1,13 @@
 package com.e.heroaddandget;
 
+import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.support.annotation.Nullable;
+import android.support.v4.content.CursorLoader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -10,6 +16,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -24,48 +31,59 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class HeroAPIActivity extends AppCompatActivity {
 
-    EditText Etname,Etdesc;
-    Button BtnHero;
-    ImageView Imgheroimage;
+    EditText etName,etDesc;
+    Button btnHero;
+    ImageView imgheroImage;
+    String imagePath;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_hero_api);
 
-        Etname=findViewById(R.id.Etname);
-        Etdesc=findViewById(R.id.Etdesc);
-        Imgheroimage=findViewById(R.id.Imghero);
-        loadFromURL();
-        BtnHero=findViewById(R.id.Btnhero);
+        etName=findViewById(R.id.Etname);
+        etDesc=findViewById(R.id.Etdesc);
+        imgheroImage=findViewById(R.id.Imghero);
 
-        BtnHero.setOnClickListener(new View.OnClickListener() {
+        btnHero=findViewById(R.id.Btnhero);
+
+        btnHero.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Add();
             }
         });
+
+        imgheroImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                BrowserImage();
+            }
+        });
+
+
+
     }
 
-    private void StrictMode(){
-        android.os.StrictMode.ThreadPolicy policy=new android.os.StrictMode.ThreadPolicy.Builder().permitAll().build();
-        android.os.StrictMode.setThreadPolicy(policy);
-    }
-
-    private void loadFromURL() {
-StrictMode();
-try {
-    String imgURl="https://softwarica.edu.np/wp-content/uploads/2019/02/Kiran-Rana.jpg";
-    URL url=new URL(imgURl);
-    Imgheroimage.setImageBitmap(BitmapFactory.decodeStream((InputStream)url.getContent()));
-}catch (IOException e){
-    Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show();
-}
-    }
+//    private void StrictMode(){
+//        android.os.StrictMode.ThreadPolicy policy=new android.os.StrictMode.ThreadPolicy.Builder().permitAll().build();
+//        android.os.StrictMode.setThreadPolicy(policy);
+//    }
+//
+//    private void loadFromURL() {
+//    StrictMode();
+//try {
+//    String imgURl="https://www.google.com/url?sa=i&source=images&cd=&ved=2ahUKEwjD0fLbpq7iAhXzmeYKHYezD0UQjRx6BAgBEAU&url=https%3A%2F%2Fmetro.co.uk%2F2019%2F04%2F27%2Fcan-you-enjoy-avengers-endgame-if-you-havent-seen-any-marvel-films-9315078%2F&psig=AOvVaw16GmMGuCn6exlFrXmzrdgO&ust=1558585770915651";
+//    URL url=new URL(imgURl);
+//    imgheroImage.setImageBitmap(BitmapFactory.decodeStream((InputStream)url.getContent()));
+//}catch (IOException e){
+//    Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show();
+//}
+//    }
 
     private void Add() {
 
-        String name=Etname.getText().toString();
-        String desc=Etdesc.getText().toString();
+        String name=etName.getText().toString();
+        String desc=etDesc.getText().toString();
         Retrofit retrofit=new Retrofit.Builder()
                 .baseUrl(BaseUrl.Base_Url)
                 .addConverterFactory(GsonConverterFactory.create())
@@ -82,8 +100,8 @@ try {
                     return;
                 }
                 Toast.makeText(HeroAPIActivity.this, "Successfully Hero is added", Toast.LENGTH_SHORT).show();
-                Etname.setText("");
-                Etdesc.setText("");
+                etName.setText("");
+                etDesc.setText("");
             }
 
             @Override
@@ -93,4 +111,53 @@ try {
             }
         });
     }
+
+
+    private  void BrowserImage(){
+
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        startActivityForResult(intent,0);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode==RESULT_OK){
+            if (data== null){
+                Toast.makeText(this,"Please select an image",Toast.LENGTH_SHORT).show();
+            }
+        }
+
+
+    Uri uri = data.getData();
+    imagePath =getRealPathFromUri(uri);
+    previewImage(imagePath);
+
+    }
+
+    private String getRealPathFromUri(Uri uri){
+    String[] projection = {MediaStore.Images.Media.DATA};
+        CursorLoader loader = new CursorLoader(getApplicationContext(),uri,projection,null,
+                null,null);
+        Cursor cursor = loader.loadInBackground();
+        int colIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        String result =cursor.getString(colIndex);
+        cursor.close();
+        return result;
+
+    }
+
+    private void previewImage(String imagePath){
+        File imgFile = new File(imagePath);
+        if (imgFile.exists())
+        {
+            Bitmap mybitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+            imgheroImage.setImageBitmap(mybitmap);
+        }
+    }
+
+
 }
